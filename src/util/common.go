@@ -1,8 +1,8 @@
 package util
 
 import (
-	"async/src/constant"
 	"fmt"
+	"github.com/Frees0u1/async/src/constant"
 	"time"
 )
 

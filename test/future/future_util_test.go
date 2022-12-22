@@ -1,9 +1,9 @@
 package future
 
 import (
-	"async/src/future"
 	"context"
 	"fmt"
+	"github.com/Frees0u1/async/src/future"
 	"github.com/stretchr/testify/assert"
 	"testing"
 	"time"

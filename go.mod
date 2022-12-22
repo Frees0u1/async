@@ -1,4 +1,4 @@
-module async
+module github.com/Frees0u1/async
 
 go 1.19
 

@@ -1,9 +1,9 @@
 package main
 
 import (
-	"async/src/future"
 	"context"
 	"fmt"
+	"github.com/Frees0u1/async/src/future"
 	"math/rand"
 	"time"
 )

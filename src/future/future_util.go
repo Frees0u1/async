@@ -1,9 +1,9 @@
 package future
 
 import (
-	"async/src/util"
 	"context"
 	"fmt"
+	"github.com/Frees0u1/async/src/util"
 	"sync"
 	"time"
 )
