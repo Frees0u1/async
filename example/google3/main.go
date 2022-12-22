@@ -37,7 +37,6 @@ func fakeSearch(kind string) Search {
 }
 
 func webSearch(ctx context.Context, query string) (Result, error) {
-	fmt.Println("coming to web search")
 	return future.First(ctx, nil, []future.Future[Result]{
 		future.NewFuture(func() (Result, error) {
 			return Web(query), nil
