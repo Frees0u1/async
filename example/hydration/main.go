@@ -89,7 +89,7 @@ type GetGenderResponse struct {
 }
 
 func GetName(req GetNameRequest) (GetNameResponse, error) {
-	sleep := rand.Intn(100) + 100
+	sleep := rand.Intn(100)
 	fmt.Printf("GetName sleep %d ms\n", sleep)
 	time.Sleep(time.Duration(sleep) * time.Millisecond)
 
