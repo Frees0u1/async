@@ -2,8 +2,6 @@ package util
 
 import (
 	"fmt"
-	"github.com/Frees0u1/async/src/constant"
-	"time"
 )
 
 func RecoverAsError() error {
@@ -21,15 +19,4 @@ func RecoverAsError() error {
 		return err
 	}
 	return nil
-}
-
-func GetTimeoutTimer(timeout *time.Duration) *time.Timer {
-	var timer *time.Timer
-	if timeout == nil {
-		timer = time.NewTimer(time.Duration(constant.DefaultTimeoutInSeconds) * time.Second)
-	} else {
-		timer = time.NewTimer(*timeout)
-	}
-
-	return timer
 }

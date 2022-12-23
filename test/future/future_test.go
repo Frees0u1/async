@@ -23,11 +23,11 @@ func TestAwait(t *testing.T) {
 	})
 
 	ctx := context.Background()
-	res1, e := future1.Await(ctx, nil)
+	res1, e := future1.Await(ctx)
 	assert.Equal(t, 1, res1)
 	assert.Nil(t, e)
 
-	res2, e := future2HasError.Await(ctx, nil)
+	res2, e := future2HasError.Await(ctx)
 	assert.Error(t, e)
 	assert.True(t, math.Abs(res2-0) < 0.001)
 }

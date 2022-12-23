@@ -20,20 +20,33 @@ func main() {
 	start := time.Now()
 	ctx := context.Background()
 	id := 1
-	nameFuture := future.NewFuture(func() (GetNameResponse, error) {
+	timeoutMs := 80
+	nameFuture := future.NewFutureWithTimeout(func() (GetNameResponse, error) {
 		return GetName(GetNameRequest{Id: id})
-	})
-	ageFuture := future.NewFuture(func() (GetAgeResponse, error) {
+	}, timeoutMs,
+	)
+	ageFuture := future.NewFutureWithTimeout(func() (GetAgeResponse, error) {
 		return GetAge(GetAgeRequest{Id: id})
-	})
-	genderFuture := future.NewFuture(func() (GetGenderResponse, error) {
+	}, timeoutMs,
+	)
+	genderFuture := future.NewFutureWithTimeout(func() (GetGenderResponse, error) {
 		return GetGender(GetGenderRequest{Id: id})
-	})
+	}, timeoutMs)
 
-	timeout := 80 * time.Millisecond
-	nameResp, _ := nameFuture.Await(ctx, &timeout)
-	ageResp, _ := ageFuture.Await(ctx, &timeout)
-	genderResp, _ := genderFuture.Await(ctx, &timeout)
+	var err error
+	nameResp, err := nameFuture.Await(ctx)
+	if err != nil {
+		fmt.Printf("GetName error: %v\n", err)
+	}
+
+	ageResp, err := ageFuture.Await(ctx)
+	if err != nil {
+		fmt.Printf("GetAge error: %v\n", err)
+	}
+	genderResp, err := genderFuture.Await(ctx)
+	if err != nil {
+		fmt.Printf("GetGendor error: %v\n", err)
+	}
 
 	profile := UserProfile{
 		Id:     id,
@@ -76,7 +89,10 @@ type GetGenderResponse struct {
 }
 
 func GetName(req GetNameRequest) (GetNameResponse, error) {
-	time.Sleep(time.Duration(rand.Intn(100)) * time.Millisecond)
+	sleep := rand.Intn(100) + 100
+	fmt.Printf("GetName sleep %d ms\n", sleep)
+	time.Sleep(time.Duration(sleep) * time.Millisecond)
+
 	return GetNameResponse{
 		Id:   req.Id,
 		Name: "Alice",
@@ -84,7 +100,10 @@ func GetName(req GetNameRequest) (GetNameResponse, error) {
 }
 
 func GetAge(req GetAgeRequest) (GetAgeResponse, error) {
-	time.Sleep(time.Duration(rand.Intn(100)) * time.Millisecond)
+	sleep := rand.Intn(100)
+	fmt.Printf("GetAge sleep %d ms\n", sleep)
+	time.Sleep(time.Duration(sleep) * time.Millisecond)
+
 	return GetAgeResponse{
 		Id:  req.Id,
 		Age: 18,
@@ -92,7 +111,10 @@ func GetAge(req GetAgeRequest) (GetAgeResponse, error) {
 }
 
 func GetGender(req GetGenderRequest) (GetGenderResponse, error) {
-	time.Sleep(time.Duration(rand.Intn(100)) * time.Millisecond)
+	sleep := rand.Intn(100)
+	fmt.Printf("GetGendor sleep %d ms\n", sleep)
+	time.Sleep(time.Duration(sleep) * time.Millisecond)
+
 	return GetGenderResponse{
 		Id:     req.Id,
 		Gender: "Female",

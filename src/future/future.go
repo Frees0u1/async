@@ -3,57 +3,100 @@ package future
 import (
 	"context"
 	"fmt"
-	"github.com/Frees0u1/async/src/constant"
 	"github.com/Frees0u1/async/src/util"
+	"sync"
 	"time"
 )
 
 type Future[T any] interface {
-	Await(ctx context.Context, timeout *time.Duration) (T, error)
+	Await(ctx context.Context) (T, error)
+	runAsync(fn func() (T, error))
+	complete(T, error)
 }
 
-type FutureImpl[T any] struct {
-	done   chan interface{}
+type futureResult[T any] struct {
 	result T
 	err    error
 }
 
+type FutureImpl[T any] struct {
+	done        chan futureResult[T]
+	timeout     *time.Duration
+	timeoutChan <-chan time.Time
+	doneOnce    sync.Once
+	closeOnce   sync.Once
+}
+
 func NewFuture[T any](fn func() (T, error)) Future[T] {
 	f := &FutureImpl[T]{
-		done: make(chan interface{}),
+		done:        make(chan futureResult[T], 1),
+		timeoutChan: nil,
 	}
-	go func() {
-		defer func() {
-			close(f.done)
-			e := util.RecoverAsError()
-
-			if e != nil {
-				var zeroR T
-				f.result, f.err = zeroR, e
-			}
-		}()
-
-		f.result, f.err = fn()
-	}()
-
+	f.runAsync(fn)
 	return f
 }
 
-func (f *FutureImpl[T]) Await(ctx context.Context, timeout *time.Duration) (T, error) {
-	var timer *time.Timer
-	if timeout == nil {
-		timer = time.NewTimer(time.Duration(constant.DefaultTimeoutInSeconds) * time.Second)
-	} else {
-		timer = time.NewTimer(*timeout)
+func NewFutureWithTimeout[T any](fn func() (T, error), timeoutMs int) Future[T] {
+	timeout := time.Duration(timeoutMs) * time.Millisecond
+	f := &FutureImpl[T]{
+		done:        make(chan futureResult[T], 1),
+		timeout:     &timeout,
+		timeoutChan: time.After(time.Duration(timeoutMs) * time.Millisecond),
+	}
+	f.runAsync(fn)
+	return f
+}
+
+func (f *FutureImpl[T]) Await(ctx context.Context) (T, error) {
+	defer f.closeOnce.Do(func() {
+		close(f.done)
+	})
+	var r T
+	var e error
+	var zeroR T
+
+	for {
+		done := false
+		select {
+		case <-ctx.Done():
+			f.complete(zeroR, ctx.Err())
+		case <-f.timeoutChan:
+			f.complete(zeroR, fmt.Errorf("timeout %v", f.timeout))
+		case x := <-f.done:
+			r = x.result
+			e = x.err
+			done = true
+		default:
+		}
+
+		if done {
+			break
+		}
 	}
 
-	var zeroR T
-	select {
-	case <-ctx.Done():
-		return zeroR, ctx.Err()
-	case <-f.done:
-		return f.result, f.err
-	case <-timer.C:
-		return zeroR, fmt.Errorf("Future timeout after %s", timeout)
-	}
+	return r, e
+}
+
+func (f *FutureImpl[T]) complete(result T, err error) {
+	f.doneOnce.Do(func() {
+		f.done <- futureResult[T]{
+			result: result,
+			err:    err,
+		}
+	})
+}
+
+func (f *FutureImpl[T]) runAsync(fn func() (T, error)) {
+	go func() {
+		defer func() {
+			e := util.RecoverAsError()
+			if e != nil {
+				var zeroR T
+				f.complete(zeroR, e)
+			}
+		}()
+
+		r, e := fn()
+		f.complete(r, e)
+	}()
 }

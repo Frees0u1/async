@@ -38,7 +38,7 @@ func AwaitAll[T any](ctx context.Context, timeout *time.Duration, futures []Futu
 				wg.Done()
 			}()
 
-			r, e := f.Await(ctx, nil)
+			r, e := f.Await(ctx)
 			if e != nil {
 				errChan <- e
 				return
@@ -52,14 +52,18 @@ func AwaitAll[T any](ctx context.Context, timeout *time.Duration, futures []Futu
 		close(allDone)
 	}()
 
-	timer := util.GetTimeoutTimer(timeout)
+	var timeoutChan <-chan time.Time
+	if timeout != nil {
+		timeoutChan = time.After(*timeout)
+	}
+
 	select {
 	case e := <-errChan:
 		return emptyResult, e
 	case <-allDone:
 		return result, nil
-	case <-timer.C:
-		return emptyResult, fmt.Errorf("Future timeout after %s", timeout)
+	case <-timeoutChan:
+		return emptyResult, fmt.Errorf("future timeout after %s", timeout)
 	}
 }
 
@@ -80,7 +84,7 @@ func First[T any](ctx context.Context, timeout *time.Duration, futures []Future[
 				}
 			}()
 
-			r, e := f.Await(ctx, nil)
+			r, e := f.Await(ctx)
 			if e != nil {
 				errChan <- e
 				return
@@ -90,14 +94,17 @@ func First[T any](ctx context.Context, timeout *time.Duration, futures []Future[
 		}(i, f)
 	}
 
-	timer := util.GetTimeoutTimer(timeout)
+	timeoutChan := make(<-chan time.Time)
+	if timeout != nil {
+		timeoutChan = time.After(*timeout)
+	}
 
 	select {
 	case e := <-errChan:
 		return result, e
 	case result = <-resultChan:
 		return result, nil
-	case <-timer.C:
+	case <-timeoutChan:
 		return result, fmt.Errorf("future timeout after %s", timeout)
 	}
 }
