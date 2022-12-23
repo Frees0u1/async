@@ -31,3 +31,16 @@ func TestAwait(t *testing.T) {
 	assert.Error(t, e)
 	assert.True(t, math.Abs(res2-0) < 0.001)
 }
+
+func TestAwaitWhenTimeout(t *testing.T) {
+	f := future.NewFutureWithTimeout[int](func() (int, error) {
+		time.Sleep(10 * time.Millisecond)
+		return 1, nil
+	}, 5,
+	)
+
+	r, e := f.Await(context.Background())
+	assert.Equal(t, 0, r)
+	assert.Error(t, e)
+	assert.ErrorContains(t, e, "timeout")
+}

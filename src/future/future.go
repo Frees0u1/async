@@ -51,30 +51,19 @@ func (f *FutureImpl[T]) Await(ctx context.Context) (T, error) {
 	defer f.closeOnce.Do(func() {
 		close(f.done)
 	})
-	var r T
-	var e error
 	var zeroR T
 
-	for {
-		done := false
+	go func() {
 		select {
 		case <-ctx.Done():
 			f.complete(zeroR, ctx.Err())
 		case <-f.timeoutChan:
 			f.complete(zeroR, fmt.Errorf("timeout %v", f.timeout))
-		case x := <-f.done:
-			r = x.result
-			e = x.err
-			done = true
-		default:
 		}
+	}()
 
-		if done {
-			break
-		}
-	}
-
-	return r, e
+	x := <-f.done
+	return x.result, x.err
 }
 
 func (f *FutureImpl[T]) complete(result T, err error) {
